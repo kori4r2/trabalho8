@@ -30,12 +30,15 @@ CHESS_MOVE *create_move(char piece, int origin_rank, char origin_file, int desti
 int compare_moves(CHESS_MOVE *move1, CHESS_MOVE *move2){
 	if(move1 != NULL && move2 != NULL){
 		if(move1->destiny_rank == move2->destiny_rank && move1->destiny_file == move2->destiny_file){
-			if(move1->origin_rank == move2->origin_rank) return 2;
+			if(move1->origin_rank == move2->origin_rank){
+				if(move1->origin_file == move2->origin_file) return 3;
+				return 2;
+			}
 			return 1;
 		}
 		return 0;
 	}
-	return INT_MIN;
+	return -1;
 }
 
 int swap_moves(CHESS_MOVE **move1, CHESS_MOVE **move2){

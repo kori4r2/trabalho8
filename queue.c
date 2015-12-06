@@ -94,8 +94,8 @@ int dequeue(QUEUE *queue){
 	return 2;
 }
 
-NODE *front_queue(QUEUE *queue){
-	if(!empty_queue(queue)) return queue->first;
+CHESS_MOVE *front_queue(QUEUE *queue){
+	if(!empty_queue(queue)) return queue->first->move;
 	return NULL;
 }
 
