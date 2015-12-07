@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define FIRST_SIZE 256
+#define FIRST_SIZE 257
 
 typedef struct hash_table HASH_TABLE;
 

@@ -32,6 +32,7 @@ int delete_list(PIECE_LIST**);
 // temporary
 int print_list(PIECE_LIST*);
 void list_moves(TABLE*, QUEUE*, PIECE_LIST*);
+char *ai_move(TABLE*);
 //
 TABLE *create_table(void);
 int read_table(FILE*, TABLE*);

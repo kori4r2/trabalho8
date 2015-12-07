@@ -38,13 +38,20 @@ typedef struct table{
 }TABLE;
 
 int update_fen(TABLE*);
+PIECE *create_piece(char, int, char);
+void delete_piece(PIECE**);
 
 //PIECE related functions------------------------------------
-int is_attacked(TABLE *table, PIECE *piece, int *a2){
-	int i, j, enemy_side, check = 0;
-	PIECE *king = piece;
+int is_attacked(TABLE *table, char file, int rank, int *a2){
+	int i, j, enemy_side, check = 0, dupe = 0;
+	PIECE *king = table->grid[8-rank][file-'a'];
 	PIECE *aux;
-	enemy_side = (king->side == WHITES_SIDE ? BLACKS_SIDE : WHITES_SIDE);
+	if(king == NULL){
+		dupe = 1;
+		king = create_piece(0, rank, file);
+	}
+	enemy_side = (table->turn_king->side == WHITES_SIDE)? BLACKS_SIDE : WHITES_SIDE;
+
 	*a2 = 0;
 
 	// Checa se existe uma torre ou uma rainha atacando o rei para cima na coluna
@@ -139,7 +146,7 @@ int is_attacked(TABLE *table, PIECE *piece, int *a2){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
 		if(!check && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!(*a2) && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	// Checa se a posição acima para a direita contém uma ameaça ao rei
@@ -150,7 +157,7 @@ int is_attacked(TABLE *table, PIECE *piece, int *a2){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
 		if(!check && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!(*a2) && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	// Checa se a posição abaixo para a direita contém uma ameaça ao rei
@@ -161,7 +168,7 @@ int is_attacked(TABLE *table, PIECE *piece, int *a2){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
 		if(!check && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!(*a2) && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	// Checa se a posição abaixo para a esquerda contém uma ameaça ao rei
@@ -172,7 +179,7 @@ int is_attacked(TABLE *table, PIECE *piece, int *a2){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
 		if(!check && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!(*a2) && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	//Checa se há algum cavalo ameaçando o rei
@@ -220,7 +227,7 @@ int is_attacked(TABLE *table, PIECE *piece, int *a2){
 	if(!check && aux != NULL && aux->move == &move_knight && aux->side == enemy_side) check = 1;
 	if(!(*a2) && aux != NULL && aux->move == &move_knight && aux->side != enemy_side) *a2 = 1;
 
-
+	if(dupe) delete_piece(&king);
 	return check;
 }
 
@@ -241,7 +248,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 		table->grid[8-rook->rank][(rook->file-i)-'a'] = rook;
 		table->grid[8-rook->rank][rook->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file-i, 1, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file-i, 1, 0));
 		// Desfaz a jogada
 		table->grid[8-rook->rank][rook->file-'a'] = rook;
 		table->grid[8-rook->rank][(rook->file-i)-'a'] = aux;
@@ -255,7 +263,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 			// E enfileira as jogadas possíveis
 			table->grid[8-rook->rank][(rook->file-i)-'a'] = rook;
 			table->grid[8-rook->rank][rook->file-'a'] = NULL;
-			if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file-i, 0, 0));
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+				enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file-i, 0, 0));
 			table->grid[8-rook->rank][rook->file-'a'] = rook;
 			table->grid[8-rook->rank][(rook->file-i)-'a'] = NULL;
 			i--;
@@ -270,7 +279,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	if(aux != NULL && aux->side == enemy_side){
 		table->grid[8-(rook->rank-i)][rook->file-'a'] = rook;
 		table->grid[8-rook->rank][rook->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank-i, rook->file, 1, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank-i, rook->file, 1, 0));
 		table->grid[8-rook->rank][rook->file-'a'] = rook;
 		table->grid[8-(rook->rank-i)][rook->file-'a'] = aux;
 	}
@@ -280,7 +290,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 		while(i > 0){
 			table->grid[8-(rook->rank-i)][rook->file-'a'] = rook;
 			table->grid[8-rook->rank][rook->file-'a'] = NULL;
-			if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank-i, rook->file, 0, 0));
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+				enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank-i, rook->file, 0, 0));
 			table->grid[8-rook->rank][rook->file-'a'] = rook;
 			table->grid[8-(rook->rank-i)][rook->file-'a'] = NULL;
 			i--;
@@ -293,7 +304,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	while(rook->rank+i <= 8 && table->grid[8-(rook->rank+i)][rook->file-'a'] == NULL){
 		table->grid[8-(rook->rank+i)][rook->file-'a'] = rook;
 		table->grid[8-rook->rank][rook->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank+i, rook->file, 0, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank+i, rook->file, 0, 0));
 		table->grid[8-rook->rank][rook->file-'a'] = rook;
 		table->grid[8-(rook->rank+i)][rook->file-'a'] = NULL;
 		i++;
@@ -302,7 +314,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	if(aux != NULL && aux->side == enemy_side){
 		table->grid[8-(rook->rank+i)][rook->file-'a'] = rook;
 		table->grid[8-rook->rank][rook->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank+i, rook->file, 1, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank+i, rook->file, 1, 0));
 		table->grid[8-rook->rank][rook->file-'a'] = rook;
 		table->grid[8-(rook->rank+i)][rook->file-'a'] = aux;
 	}
@@ -313,7 +326,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	while(rook->file+i <= 'h' && table->grid[8-rook->rank][(rook->file+i)-'a'] == NULL){
 		table->grid[8-rook->rank][(rook->file+i)-'a'] = rook;
 		table->grid[8-rook->rank][rook->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file+i, 0, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file+i, 0, 0));
 		table->grid[8-rook->rank][rook->file-'a'] = rook;
 		table->grid[8-rook->rank][(rook->file+i)-'a'] = NULL;
 		i++;
@@ -322,7 +336,8 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	if(aux != NULL && aux->side == enemy_side){
 		table->grid[8-rook->rank][(rook->file+i)-'a'] = rook;
 		table->grid[8-rook->rank][rook->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file+i, 1, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(rook->name, rook->rank, rook->file, rook->rank, rook->file+i, 1, 0));
 		table->grid[8-rook->rank][rook->file-'a'] = rook;
 		table->grid[8-rook->rank][(rook->file+i)-'a'] = aux;
 	}
@@ -347,7 +362,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -363,7 +378,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -380,7 +395,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -396,7 +411,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -413,7 +428,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -429,7 +444,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -446,7 +461,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -462,7 +477,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 		table->grid[8-(knight->rank+i)][knight->file+j-'a'] = knight;
 		table->grid[8-knight->rank][knight->file-'a'] = NULL;
 		// Caso não coloque em cheque, enfilera o movimento
-		if(!is_attacked(table, table->turn_king, &a2))
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			enqueue(queue, create_move(knight->name, knight->rank, knight->file, knight->rank+i, knight->file+j, capture, 0));
 		// Desfaz a jogada
 		table->grid[8-knight->rank][knight->file-'a'] = knight;
@@ -516,7 +531,7 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 				table->grid[8-(bishop->rank-down)][bishop->file-down-'a'] = bishop;
 				table->grid[8-bishop->rank][bishop->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(bishop->name, bishop->rank, bishop->file, bishop->rank-down, bishop->file-down, 1, 0));
 				// Desfaz a jogada
 				table->grid[8-bishop->rank][bishop->file-'a'] = bishop;
@@ -525,7 +540,7 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 			}else{
 				table->grid[8-(bishop->rank-down)][bishop->file-down-'a'] = bishop;
 				table->grid[8-bishop->rank][bishop->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(bishop->name, bishop->rank, bishop->file, bishop->rank-down, bishop->file-down, 0, 0));
 				table->grid[8-bishop->rank][bishop->file-'a'] = bishop;
 				table->grid[8-(bishop->rank-down)][bishop->file-down-'a'] = NULL;
@@ -539,7 +554,7 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 				table->grid[8-(bishop->rank+up)][bishop->file-up-'a'] = bishop;
 				table->grid[8-bishop->rank][bishop->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(bishop->name, bishop->rank, bishop->file, bishop->rank+up, bishop->file-up, 1, 0));
 				// Desfaz a jogada
 				table->grid[8-bishop->rank][bishop->file-'a'] = bishop;
@@ -548,7 +563,7 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 			}else{
 				table->grid[8-(bishop->rank+up)][bishop->file-up-'a'] = bishop;
 				table->grid[8-bishop->rank][bishop->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(bishop->name, bishop->rank, bishop->file, bishop->rank+up, bishop->file-up, 0, 0));
 				table->grid[8-bishop->rank][bishop->file-'a'] = bishop;
 				table->grid[8-(bishop->rank+up)][bishop->file-up-'a'] = NULL;
@@ -585,7 +600,7 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 				table->grid[8-(bishop->rank-down)][bishop->file+down-'a'] = bishop;
 				table->grid[8-bishop->rank][bishop->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(bishop->name, bishop->rank, bishop->file, bishop->rank-down, bishop->file+down, capture, 0));
 				// Desfaz a jogada
 				table->grid[8-bishop->rank][bishop->file-'a'] = bishop;
@@ -609,7 +624,7 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 				table->grid[8-(bishop->rank+up)][bishop->file+up-'a'] = bishop;
 				table->grid[8-bishop->rank][bishop->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(bishop->name, bishop->rank, bishop->file, bishop->rank+up, bishop->file+up, capture, 0));
 				// Desfaz a jogada
 				table->grid[8-bishop->rank][bishop->file-'a'] = bishop;
@@ -677,7 +692,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 				table->grid[8-(queen->rank-down)][queen->file-down-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-down, queen->file-down, 1, 0));
 				// Desfaz a jogada
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
@@ -686,7 +701,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 			}else{
 				table->grid[8-(queen->rank-down)][queen->file-down-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-down, queen->file-down, 0, 0));
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
 				table->grid[8-(queen->rank-down)][queen->file-down-'a'] = NULL;
@@ -702,7 +717,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 				table->grid[8-queen->rank][queen->file-side-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank, queen->file-side, 1, 0));
 				// Desfaz a jogada
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
@@ -711,7 +726,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 			}else{
 				table->grid[8-queen->rank][queen->file-side-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank, queen->file-side, 0, 0));
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-side-'a'] = NULL;
@@ -727,7 +742,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 				table->grid[8-(queen->rank+up)][queen->file-up-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+up, queen->file-up, 1, 0));
 				// Desfaz a jogada
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
@@ -736,7 +751,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 			}else{
 				table->grid[8-(queen->rank+up)][queen->file-up-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+up, queen->file-up, 0, 0));
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
 				table->grid[8-(queen->rank+up)][queen->file-up-'a'] = NULL;
@@ -753,7 +768,8 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 	if(aux1 != NULL && aux1->side == enemy_side){
 		table->grid[8-(queen->rank-i)][queen->file-'a'] = queen;
 		table->grid[8-queen->rank][queen->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-i, queen->file, 1, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-i, queen->file, 1, 0));
 		table->grid[8-queen->rank][queen->file-'a'] = queen;
 		table->grid[8-(queen->rank-i)][queen->file-'a'] = aux1;
 	}
@@ -762,7 +778,8 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 		while(i > 0){
 			table->grid[8-(queen->rank-i)][queen->file-'a'] = queen;
 			table->grid[8-queen->rank][queen->file-'a'] = NULL;
-			if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-i, queen->file, 0, 0));
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+				enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-i, queen->file, 0, 0));
 			table->grid[8-queen->rank][queen->file-'a'] = queen;
 			table->grid[8-(queen->rank-i)][queen->file-'a'] = NULL;
 			i--;
@@ -775,7 +792,8 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 	while(queen->rank+i <= 8 && table->grid[8-(queen->rank+i)][queen->file-'a'] == NULL){
 		table->grid[8-(queen->rank+i)][queen->file-'a'] = queen;
 		table->grid[8-queen->rank][queen->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+i, queen->file, 0, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+i, queen->file, 0, 0));
 		table->grid[8-queen->rank][queen->file-'a'] = queen;
 		table->grid[8-(queen->rank+i)][queen->file-'a'] = NULL;
 		i++;
@@ -784,7 +802,8 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 	if(aux1 != NULL && aux1->side == enemy_side){
 		table->grid[8-(queen->rank+i)][queen->file-'a'] = queen;
 		table->grid[8-queen->rank][queen->file-'a'] = NULL;
-		if(!is_attacked(table, table->turn_king, &a2)) enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+i, queen->file, 1, 0));
+		if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
+			enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+i, queen->file, 1, 0));
 		table->grid[8-queen->rank][queen->file-'a'] = queen;
 		table->grid[8-(queen->rank+i)][queen->file-'a'] = aux1;
 	}
@@ -818,7 +837,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 				table->grid[8-(queen->rank-down)][queen->file+down-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank-down, queen->file+down, capture, 0));
 				// Desfaz a jogada
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
@@ -842,7 +861,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 				table->grid[8-queen->rank][queen->file+side-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank, queen->file+side, capture, 0));
 				// Desfaz a jogada
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
@@ -866,7 +885,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 				table->grid[8-(queen->rank+up)][queen->file+up-'a'] = queen;
 				table->grid[8-queen->rank][queen->file-'a'] = NULL;
 				// Caso não coloque em cheque, enfilera o movimento
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(queen->name, queen->rank, queen->file, queen->rank+up, queen->file+up, capture, 0));
 				// Desfaz a jogada
 				table->grid[8-queen->rank][queen->file-'a'] = queen;
@@ -905,7 +924,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 						flag = 0;
 					}else{
 						table->grid[8-king->rank][king->file-'a'] = king;
-						if(is_attacked(table, table->turn_king, &a2)){
+						if(is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2)){
 							castling_queen = 0;
 							flag = 0;
 						}
@@ -924,7 +943,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 						flag = 0;
 					}else{
 						table->grid[8-king->rank][king->file-'a'] = king;
-						if(is_attacked(table, table->turn_king, &a2)){
+						if(is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2)){
 							castling_king = 0;
 							flag = 0;
 						}
@@ -952,7 +971,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 			flag = !(aux != NULL && !capture);
 			if(flag && king->rank >= 1 && king->rank <= 8){
 				table->grid[8-king->rank][king->file-'a'] = king;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(king->name, king->rank-i, king->file-j, king->rank, king->file, capture, 0));
 				table->grid[8-king->rank][king->file-'a'] = aux;
 			}
@@ -973,7 +992,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 		flag = !(aux != NULL && !capture);
 		if(flag && king->rank >= 1){
 			table->grid[8-king->rank][king->file-'a'] = king;
-			if(!is_attacked(table, table->turn_king, &a2))
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 				enqueue(queue, create_move(king->name, king->rank-i, king->file, king->rank, king->file, capture, 0));
 			table->grid[8-king->rank][king->file-'a'] = aux;
 		}
@@ -989,7 +1008,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 		flag = !(aux != NULL && !capture);
 		if(flag && king->rank <= 8){
 			table->grid[8-king->rank][king->file-'a'] = king;
-			if(!is_attacked(table, table->turn_king, &a2))
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 				enqueue(queue, create_move(king->name, king->rank-i, king->file, king->rank, king->file, capture, 0));
 			table->grid[8-king->rank][king->file-'a'] = aux;
 		}
@@ -1010,7 +1029,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 			flag = !(aux != NULL && !capture);
 			if(flag && king->rank >= 1 && king->rank <= 8){
 				table->grid[8-king->rank][king->file-'a'] = king;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(king->name, king->rank-i, king->file-j, king->rank, king->file, capture, 0));
 				table->grid[8-king->rank][king->file-'a'] = aux;
 			}
@@ -1055,7 +1074,7 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 			table->grid[8-(pawn->rank+mirror)][pawn->file-1-'a'] = pawn;
 			table->grid[8-pawn->rank][pawn->file-'a'] = NULL;
 			if(flag) table->grid[8-(pawn->rank)][pawn->file-1-'a'] = NULL;
-			if(!is_attacked(table, table->turn_king, &a2)){
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2)){
 				// Se atingir o final enfileira todas as jogas possíveis
 				if(pawn->rank+mirror == finish){
 					enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+mirror, pawn->file-1,
@@ -1087,7 +1106,7 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 			if(flag){
 				table->grid[8-(pawn->rank+(mirror*2))][pawn->file-'a'] = pawn;
 				table->grid[8-(pawn->rank)][pawn->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2))
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 					enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+(mirror*2), pawn->file, 0, 0));
 				table->grid[8-(pawn->rank)][pawn->file-'a'] = pawn;
 				table->grid[8-(pawn->rank+(mirror*2))][pawn->file-'a'] = aux;
@@ -1098,7 +1117,7 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 			if(flag){
 				table->grid[8-(pawn->rank+mirror)][pawn->file-'a'] = pawn;
 				table->grid[8-(pawn->rank)][pawn->file-'a'] = NULL;
-				if(!is_attacked(table, table->turn_king, &a2)){
+				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2)){
 					// Se atingir o final enfileira todas as jogas possíveis
 					if(pawn->rank+mirror == finish){
 						enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+mirror, pawn->file, 0, 'N'));
@@ -1129,7 +1148,7 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 			table->grid[8-(pawn->rank+mirror)][pawn->file-'a'+1] = pawn;
 			table->grid[8-(pawn->rank)][pawn->file-'a'] = NULL;
 			if(flag) table->grid[8-(pawn->rank)][pawn->file+1-'a'] = NULL;
-			if(!is_attacked(table, table->turn_king, &a2)){
+			if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2)){
 				// Se atingir o final enfileira todas as jogas possíveis
 				if(pawn->rank+mirror == finish){
 					enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+mirror, pawn->file+1,
@@ -1693,7 +1712,7 @@ int move_piece(char *movement, TABLE *table){
 		printf("%s\n", table->fen);
 		delete_queue(&queue);
 		// Caso não tenha e esteja em cheque, exibe a mensagem de vitória
-		if(is_attacked(table, table->turn_king, &a2))
+		if(is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
 			printf("Cheque-mate -- Vitoria: %s\n", (table->turn == WHITES_TURN)? "PRETO" : "BRANCO");
 		// Caso não esteja em cheque, exibe a mensagem de empate por afogamento
 		else
@@ -1785,6 +1804,122 @@ void list_moves(TABLE *table, QUEUE *queue, PIECE_LIST *list){
 			}
 		}while(node != list->first);
 	}
+}
+
+double piece_score(TABLE *table, PIECE *piece){
+	if(piece == NULL) return 50;
+	else{
+		if(piece->move == move_pawn) return 100;
+		if(piece->move == move_knight) return 325;
+		if(piece->move == move_bishop) return 325;
+		if(piece->move == move_rook) return 550;
+		if(piece->move == move_queen) return 1000;
+		else return 50000;
+	}
+}
+
+double move_score(TABLE *table, CHESS_MOVE *move){
+	PIECE *piece = table->grid[8-move->origin_rank][move->origin_file-'a'];
+	PIECE *aux = table->grid[8-move->destiny_rank][move->destiny_file-'a'];
+	PIECE *rook = NULL;
+	int a1, a2, i, j, castling = 0;
+	double numerator = 0, denominator = 0, value1, value2;
+
+	if(piece->move == move_king && (move->origin_file - move->destiny_file == 2 || move->origin_file - move->destiny_file == -2)){
+		castling = 1;
+		if(move->destiny_file == 'c'){
+			rook = table->grid[8-piece->rank][0];
+			table->grid[8-piece->rank][0] = NULL;
+			table->grid[8-piece->rank]['d'-'a'] = rook;
+			rook->file = 'd';
+		}else{
+			rook = table->grid[8-piece->rank][7];
+			table->grid[8-piece->rank][7] = NULL;
+			table->grid[8-piece->rank]['f'-'a'] = rook;
+			rook->file = 'f';
+		}
+	}
+
+
+	table->grid[8-move->origin_rank][move->origin_file-'a'] = NULL;
+	table->grid[8-move->destiny_rank][move->destiny_file-'a'] = piece;
+	if(move->special == 'E'){
+		aux = table->grid[8-piece->rank][move->destiny_file-'a'];
+		table->grid[8-piece->rank][move->destiny_file-'a'] = NULL;
+	}else if(move->special != '\0'){
+		piece->name = move->special;
+		if(move->special == W_KNIGHT) piece->move = move_knight;
+		else if(move->special == W_BISHOP) piece->move = move_bishop;
+		else if(move->special == W_ROOK) piece->move = move_rook;
+		else if(move->special == W_QUEEN) piece->move = move_queen;
+		if(piece->side == BLACKS_SIDE) piece->name = tolower(piece->name);
+	}
+	piece->file = move->destiny_file;
+	piece->rank = move->destiny_rank;
+	for(i = 0; i < 8; i++){
+		for(j = 0; j < 8; j++){
+			a1 = is_attacked(table, 'a'+j, 8-i, &a2);
+			value1 = piece_score(table, table->grid[i][j]);
+			fprintf(stderr, "(%d,%d) ", a1, a2);
+			value2 = value1;
+			if(piece != NULL && piece->side == table->turn_king->side) value2 = value2/2.0;
+			else if(piece != NULL) value1 = value1/2.0;
+			numerator += (double)a2*(value2);
+			denominator += (double)a1*(value1);
+		}
+		fprintf(stderr, "    ");
+		for(j = 0; j < 8; j++){
+			if(table->grid[i][j] == NULL) fprintf(stderr, " - ");
+			else fprintf(stderr, " %c ", table->grid[i][j]->name);
+		}
+		fprintf(stderr, "\n");
+	}
+	fprintf(stderr, "result = %.4lf\n\n", (numerator/(denominator+1.0)));
+	if(move->special != '\0' && move->special != 'E'){
+		piece->name = (piece->side == WHITES_SIDE)? W_PAWN : B_PAWN;
+		piece->move = move_pawn;
+	}
+	table->grid[8-move->origin_rank][move->origin_file-'a'] = piece;
+	piece->rank = move->origin_rank;
+	piece->file = move->origin_file;
+	table->grid[8-move->destiny_rank][move->destiny_file-'a'] = NULL;
+	if(aux != NULL) table->grid[8-aux->rank][aux->file-'a'] = aux;
+	if(castling){
+		if(move->destiny_file == 'c'){
+			table->grid[8-piece->rank][0] = rook;
+			table->grid[8-piece->rank]['d'-'a'] = NULL;
+			rook->file = 'a';
+		}else{
+			table->grid[8-piece->rank][7] = rook;
+			table->grid[8-piece->rank]['f'-'a'] = NULL;
+			rook->file = 'h';
+		}
+	}
+
+	return (numerator/(denominator+1.0));
+}
+
+char *ai_move(TABLE *table){
+	PIECE_LIST *list = create_piece_list(table);
+	QUEUE *queue = create_queue();
+	CHESS_MOVE *best_move = NULL;
+	double highest_score = -1;
+	char *command = (char*)malloc(sizeof(char)*6);
+
+	list_moves(table, queue, list);
+	while(!empty_queue(queue)){
+		if(move_score(table, front_queue(queue)) >= highest_score){
+			delete_move(&best_move);
+			best_move = copy_move(front_queue(queue));
+			highest_score = move_score(table, best_move);
+		}
+		dequeue(queue);
+	}
+	sprintf(command, "%c%d%c%d", best_move->origin_file, best_move->origin_rank, best_move->destiny_file, best_move->destiny_rank);
+	if(best_move->special != '\0' && best_move->special != 'E') sprintf(command+4, "%c", best_move->special);
+	delete_move(&best_move);
+	fprintf(stderr, "highest score = %.4lf ", highest_score);
+	return command;
 }
 
 int delete_table(TABLE **table){

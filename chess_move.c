@@ -1,18 +1,25 @@
 #include "chess_move.h"
 
-struct move{
-	char piece;
-	int origin_rank;
-	int origin_file;
-	int destiny_rank;
-	int destiny_file;
-	unsigned char capture;
-	unsigned char repeat;
-	char special;
-};
-
 void set_repeat(CHESS_MOVE *move, unsigned char repeat){
 	if(move != NULL) move->repeat = repeat;
+}
+
+CHESS_MOVE *copy_move(CHESS_MOVE *move){
+	if(move != NULL){
+		CHESS_MOVE *new_move = (CHESS_MOVE*)malloc(sizeof(CHESS_MOVE));
+		if(new_move != NULL){
+			new_move->piece = move->piece;
+			new_move->origin_rank = move->origin_rank;
+			new_move->origin_file = move->origin_file;
+			new_move->destiny_rank = move->destiny_rank;
+			new_move->destiny_file = move->destiny_file;
+			new_move->capture = move->capture;
+			new_move->repeat = move->repeat;
+			new_move->special = move->special;
+		}
+		return new_move;
+	}
+	return NULL;
 }
 
 CHESS_MOVE *create_move(char piece, int origin_rank, char origin_file, int destiny_rank, char destiny_file, unsigned char capture, char special){

@@ -12,27 +12,46 @@ struct hash_table{
 	int used;
 };
 
+int is_prime(int value){
+	int i;
+	for(i = 3; i <= sqrt(value); i++){
+		if(value % i == 0) return 0;
+	}
+	return 1;
+}
+
+int next_key(int value){
+	int next = value;
+	while((next += 2) % 4 != 3 && !is_prime(next));
+	return next;
+}
+
 int get_position(char *string, HASH_TABLE *hash){
 	if(string == NULL || hash == NULL) return -1;
 
-	int i = 0, j = 1;
-	int start, end;
+	int i = 0, j = 0;
+	long int start, end;
 	double a = 2;
-	double position = 0;
+	double key = 0;
 
 	while(string[i++] != '\0'){
-		position += pow(a, (double)j);
+		key += pow(a, j);
 		j++;
 	}
-	start = (int)position%hash->capacity;
+	start = ((long int)key)%(hash->capacity);
 	end = start;
-	i = 1;
 	while(hash->table[end] != NULL && strcmp(string, hash->table[end]->string) != 0 && i < hash->capacity){
-		end = start + ((int)pow(i, 2) % hash->capacity);
 		i++;
+		if(i%2 == 1) end = ((long int)(key + pow(i, 2))) % hash->capacity;
+		else{
+			end = ((long int)(key - pow(i, 2)));
+			if(end < 0) end = end*(-1);
+			end = end % hash->capacity;
+		}
 	}
+	if(i == hash->capacity) fprintf(stderr, "checked everything\n");
 
-	return end;
+	return (int)end;
 }
 
 HASH_ELEMENT *create_element(char *string){
@@ -66,7 +85,7 @@ HASH_TABLE *expand_table(HASH_TABLE *hash){
 	HASH_TABLE *new_hash = NULL;
 	if(hash != NULL){
 		int i, j;
-		hash = create_hash_table(hash->capacity*2);
+		hash = create_hash_table(next_key(hash->capacity));
 		for(i = 0; i < hash->capacity; i++){
 			if(hash->table[i] != NULL){
 				j = get_position(hash->table[i]->string, new_hash);
@@ -81,6 +100,15 @@ HASH_TABLE *expand_table(HASH_TABLE *hash){
 		free(hash);
 	}
 	return new_hash;
+}
+
+void print_hash(HASH_TABLE *hash){
+	if(hash != NULL){
+		int i;
+		for(i = 0; i < hash->capacity; i++){
+			if(hash->table[i] != NULL) fprintf(stderr, "%d - %s\n", i, hash->table[i]->string);
+		}
+	}
 }
 
 int insert_hash(HASH_TABLE **hash, char *string){
@@ -101,9 +129,9 @@ int insert_hash(HASH_TABLE **hash, char *string){
 			(*hash)->table[position]->counter++;
 			return (*hash)->table[position]->counter;
 		}else{
+			fprintf(stderr, "error inserting %s to hash table, %s existed\n", string, (*hash)->table[position]->string);
 			free(string);
-			fprintf(stderr, "error inserting to hash table\n");
-			return -1;
+			return 100;
 		}
 	}
 }
@@ -114,6 +142,7 @@ int delete_hash_table(HASH_TABLE **hash){
 		for(i = 0; i < (*hash)->capacity; i++){
 			delete_element(&((*hash)->table[i]));
 		}
+		free((*hash)->table);
 		free(*hash);
 		*hash = NULL;
 		return 0;

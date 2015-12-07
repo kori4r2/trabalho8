@@ -1,5 +1,6 @@
 *.in
 *.out
+*.txt
 *.in~
-*.in~
+*.out~
 *.swp
