@@ -1929,6 +1929,9 @@ char *ai_move(TABLE *table){
 	if(best_move->special != '\0' && best_move->special != 'E') command[4] = best_move->special;
 	command[5] = '\0';
 	delete_move(&best_move);
+	delete_list(&list);
+	delete_queue(&queue);
+
 	return command;
 }
 

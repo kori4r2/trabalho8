@@ -32,20 +32,19 @@ int main(int argc, char *argv[]){
 				}else end = 1;
 			}else if(turn == BLACKS_TURN){
 				input = ai_move(table);
-//				fprintf(stderr, "ai move == %s\n", input);
 				print = move_piece(input, table);
 				end = (print == 0);
 			}
 			if(!end && print == 1){
 				fen = get_fen(table);
 				printf("%s\n", fen);
-				free(input);
-				input = NULL;
 				if(insert_hash(&hash, current_state(fen)) >= 3){
 					printf("Empate -- Tripla Repeticao\n");
 					end = 1;
 				}
 			}
+			free(input);
+			input = NULL;
 		}
 		if(input != NULL) free(input);
 	}else free(input);
