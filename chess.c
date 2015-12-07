@@ -1771,10 +1771,18 @@ int update_fen(TABLE *table){
 
 void list_moves(TABLE *table, QUEUE *queue, PIECE_LIST *list){
 	AUX_NODE *node = list->first;
+	NODE *start;
+	char cur_piece = 0;
 	if(node != NULL){
 		do{
+			if(cur_piece != node->piece->name) start = queue->first;
 			node->piece->move(table, queue, node->piece);
 			node = node->next;
+			if(cur_piece != node->piece->name){
+				if(start == NULL) check_repeats(queue, queue->first);
+				else check_repeats(queue, start);
+				cur_piece = node->piece->name;
+			}
 		}while(node != list->first);
 	}
 }
