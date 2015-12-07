@@ -37,8 +37,9 @@ char *ai_move(TABLE*);
 TABLE *create_table(void);
 int read_table(FILE*, TABLE*);
 int move_piece(char*, TABLE*);
-char* get_fen(TABLE*);
+char *get_fen(TABLE*);
 char *dupe_move(TABLE*);
+char cur_turn(TABLE*);
 int is_check(TABLE*);
 int delete_table(TABLE**);
 

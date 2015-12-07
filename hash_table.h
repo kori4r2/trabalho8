@@ -12,5 +12,6 @@ typedef struct hash_table HASH_TABLE;
 HASH_TABLE *create_hash_table(int);
 int insert_hash(HASH_TABLE**, char*);
 int delete_hash_table(HASH_TABLE**);
+void print_hash(HASH_TABLE*);
 
 #endif

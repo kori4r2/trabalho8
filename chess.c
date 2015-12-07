@@ -41,6 +41,11 @@ int update_fen(TABLE*);
 PIECE *create_piece(char, int, char);
 void delete_piece(PIECE**);
 
+char cur_turn(TABLE *table){
+	if(table != NULL) return table->turn;
+	else return '\0';
+}
+
 //PIECE related functions------------------------------------
 int is_attacked(TABLE *table, char file, int rank, int *a2){
 	int i, j, enemy_side, check = 0, dupe = 0;
@@ -49,6 +54,7 @@ int is_attacked(TABLE *table, char file, int rank, int *a2){
 	if(king == NULL){
 		dupe = 1;
 		king = create_piece(0, rank, file);
+		king->side = table->turn_king->side;
 	}
 	enemy_side = (table->turn_king->side == WHITES_SIDE)? BLACKS_SIDE : WHITES_SIDE;
 
@@ -145,8 +151,8 @@ int is_attacked(TABLE *table, char file, int rank, int *a2){
 	if(aux != NULL){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
-		if(!check && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!check && table->turn_king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
+		if(!(*a2) && table->turn_king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	// Checa se a posição acima para a direita contém uma ameaça ao rei
@@ -156,8 +162,8 @@ int is_attacked(TABLE *table, char file, int rank, int *a2){
 	if(aux != NULL){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
-		if(!check && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!check && table->turn_king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
+		if(!(*a2) && table->turn_king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	// Checa se a posição abaixo para a direita contém uma ameaça ao rei
@@ -167,8 +173,8 @@ int is_attacked(TABLE *table, char file, int rank, int *a2){
 	if(aux != NULL){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
-		if(!check && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!check && table->turn_king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
+		if(!(*a2) && table->turn_king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	// Checa se a posição abaixo para a esquerda contém uma ameaça ao rei
@@ -178,8 +184,8 @@ int is_attacked(TABLE *table, char file, int rank, int *a2){
 	if(aux != NULL){
 		if(aux->move == &move_king && aux->side == enemy_side) check = 1;
 		if(aux->move == &move_king && aux->side != enemy_side) *a2 = 1;
-		if(!check && king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
-		if(!(*a2) && king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
+		if(!check && table->turn_king->side == BLACKS_SIDE && aux->move == &move_pawn && aux->side == enemy_side) check = 1;
+		if(!(*a2) && table->turn_king->side == WHITES_SIDE && aux->move == &move_pawn && aux->side != enemy_side) *a2 = 1;
 	}
 
 	//Checa se há algum cavalo ameaçando o rei
@@ -917,12 +923,12 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 			if(table->castling[i] == cast_queen_flag){
 				castling_queen = 1;
 				table->grid[8-king->rank][king->file-'a'] = NULL;
-				for(j = 0, flag = 1; j < 2 && flag; j++){
+				for(j = 0, flag = 1; j < 3 && flag; j++){
 					king->file--;
 					if(table->grid[8-king->rank][king->file-'a'] != NULL){
 						castling_queen = 0;
 						flag = 0;
-					}else{
+					}else if(j < 2){
 						table->grid[8-king->rank][king->file-'a'] = king;
 						if(is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2)){
 							castling_queen = 0;
@@ -1046,7 +1052,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 
 void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 	int enemy_side, start, finish, i, j, mirror, capture, en_passant_rank, flag, a2;
-	char en_passant_file, special;
+	char en_passant_file, special = '\0';
 	PIECE *aux;
 
 	enemy_side = (pawn->side == WHITES_SIDE)? BLACKS_SIDE : WHITES_SIDE;
@@ -1065,8 +1071,8 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 
 	// Verifica a captura para a casa à esquerda
 	if(pawn->file-1 >= 'a' && pawn->rank+mirror <= 8 && pawn->rank+mirror >= 1){
-		special = (pawn->file-1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : 0;
-		flag = (special)? 1 : 0;
+		special = (pawn->file-1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : '\0';
+		flag = (special != '\0')? 1 : 0;
 		aux = table->grid[8-(pawn->rank+(mirror*(1-flag)))][pawn->file-1-'a'];
 		capture = (aux != NULL && aux->side == enemy_side);
 		if(flag && table->grid[8-(pawn->rank+mirror)][pawn->file-1-'a'] != NULL) capture = 0;
@@ -1107,7 +1113,7 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 				table->grid[8-(pawn->rank+(mirror*2))][pawn->file-'a'] = pawn;
 				table->grid[8-(pawn->rank)][pawn->file-'a'] = NULL;
 				if(!is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
-					enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+(mirror*2), pawn->file, 0, 0));
+					enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+(mirror*2), pawn->file, 0, '\0'));
 				table->grid[8-(pawn->rank)][pawn->file-'a'] = pawn;
 				table->grid[8-(pawn->rank+(mirror*2))][pawn->file-'a'] = aux;
 			}
@@ -1126,7 +1132,7 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 						enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+mirror, pawn->file, 0, 'Q'));
 					}else{
 					// Caso contrário, só há uma jogada possível
-						enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+mirror, pawn->file, 0, 0));
+						enqueue(queue, create_move(pawn->name, pawn->rank, pawn->file, pawn->rank+mirror, pawn->file, 0, '\0'));
 					}
 				}
 				table->grid[8-(pawn->rank)][pawn->file-'a'] = pawn;
@@ -1138,13 +1144,13 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 
 	// Verifica a captura de casa à direita
 	if(pawn->file+1 <= 'h' && pawn->rank+mirror <= 8 && pawn->rank+mirror >= 1){
-		special = (pawn->file+1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : 0;
-		flag = (special)? 1 : 0;
+		special = (pawn->file+1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : '\0';
+		flag = (special != '\0')? 1 : 0;
 		aux = table->grid[8-(pawn->rank+(mirror*(1-flag)))][pawn->file+1-'a'];
 		capture = (aux != NULL && aux->side == enemy_side);
 		if(flag && table->grid[8-(pawn->rank+mirror)][pawn->file+1-'a'] != NULL) capture = 0;
 		if(capture){
-			special = (pawn->file+1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : 0;
+//			special = (pawn->file+1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : '\0';
 			table->grid[8-(pawn->rank+mirror)][pawn->file-'a'+1] = pawn;
 			table->grid[8-(pawn->rank)][pawn->file-'a'] = NULL;
 			if(flag) table->grid[8-(pawn->rank)][pawn->file+1-'a'] = NULL;
@@ -1538,13 +1544,13 @@ int move_piece(char *movement, TABLE *table){
 	dest_rank = movement[3] - '0';
 	piece = table->grid[8-orig_rank][orig_file-'a'];
 	dupe = (dest_rank == orig_rank && dest_file == orig_file && piece->move == move_king)? 1: 0;
-	if(piece != NULL && piece->move == move_pawn)
-		promotion = movement[4];
+	if(piece != NULL && piece->move == move_pawn) promotion = movement[4];
 	else promotion = '\0';
 
-	if(!is_valid_movement(orig_file, orig_rank, dest_file, dest_rank, table) && !dupe){
+	if(!dupe && !is_valid_movement(orig_file, orig_rank, dest_file, dest_rank, table)){
+//		table->turn = (table->turn == WHITES_TURN)? BLACKS_TURN : WHITES_TURN;
 		printf("Movimento invalido. Tente novamente.\n");
-		return 1;
+		return 2;
 	}
 	// Retira a peça de sua origem
 	table->grid[8-orig_rank][orig_file-'a'] = NULL;
@@ -1591,29 +1597,25 @@ int move_piece(char *movement, TABLE *table){
 	piece->rank = dest_rank;
 	piece->file = dest_file;
 	if(promotion != '\0'){
+		piece->name = promotion;
+		if(piece->side == BLACKS_SIDE) piece->name = tolower(piece->name);
 		switch(promotion){
 			case W_ROOK:
-			case B_ROOK:
 				piece->move = &move_rook;
 				break;
 			case W_KNIGHT:
-			case B_KNIGHT:
 				piece->move = &move_knight;
 				break;
 			case W_BISHOP:
-			case B_BISHOP:
 				piece->move = &move_bishop;
 				break;
 			case W_QUEEN:
-			case B_QUEEN:
 				piece->move = &move_queen;
 				break;
 			case W_KING:
-			case B_KING:
 				piece->move = &move_king;
 				break;
 			case W_PAWN:
-			case B_PAWN:
 				piece->move = &move_pawn;
 				break;
 		}
@@ -1713,7 +1715,7 @@ int move_piece(char *movement, TABLE *table){
 		delete_queue(&queue);
 		// Caso não tenha e esteja em cheque, exibe a mensagem de vitória
 		if(is_attacked(table, table->turn_king->file, table->turn_king->rank, &a2))
-			printf("Cheque-mate -- Vitoria: %s\n", (table->turn == WHITES_TURN)? "PRETO" : "BRANCO");
+			printf("Xeque-mate -- Vitoria: %s\n", (table->turn == WHITES_TURN)? "PRETO" : "BRANCO");
 		// Caso não esteja em cheque, exibe a mensagem de empate por afogamento
 		else
 			printf("Empate -- Afogamento\n");
@@ -1860,21 +1862,24 @@ double move_score(TABLE *table, CHESS_MOVE *move){
 		for(j = 0; j < 8; j++){
 			a1 = is_attacked(table, 'a'+j, 8-i, &a2);
 			value1 = piece_score(table, table->grid[i][j]);
-			fprintf(stderr, "(%d,%d) ", a1, a2);
+//			fprintf(stderr, "(%d,%d) ", a1, a2);
 			value2 = value1;
-			if(piece != NULL && piece->side == table->turn_king->side) value2 = value2/2.0;
-			else if(piece != NULL) value1 = value1/2.0;
+			if(table->grid[i][j] != NULL){
+				if(table->grid[i][j]->side == table->turn_king->side) value2 = value2/2.0;
+				else value1 = value1/2.0;
+			}
+//			fprintf(stderr, "%9.3lf ", value2);
 			numerator += (double)a2*(value2);
 			denominator += (double)a1*(value1);
 		}
-		fprintf(stderr, "    ");
-		for(j = 0; j < 8; j++){
-			if(table->grid[i][j] == NULL) fprintf(stderr, " - ");
-			else fprintf(stderr, " %c ", table->grid[i][j]->name);
-		}
-		fprintf(stderr, "\n");
+//		fprintf(stderr, "    ");
+//		for(j = 0; j < 8; j++){
+//			if(table->grid[i][j] == NULL) fprintf(stderr, " - ");
+//			else fprintf(stderr, " %c ", table->grid[i][j]->name);
+//		}
+//		fprintf(stderr, "\n");
 	}
-	fprintf(stderr, "result = %.4lf\n\n", (numerator/(denominator+1.0)));
+//	fprintf(stderr, "result = %.6lf\n\n", (numerator/(denominator+1.0)));
 	if(move->special != '\0' && move->special != 'E'){
 		piece->name = (piece->side == WHITES_SIDE)? W_PAWN : B_PAWN;
 		piece->move = move_pawn;
@@ -1904,21 +1909,26 @@ char *ai_move(TABLE *table){
 	QUEUE *queue = create_queue();
 	CHESS_MOVE *best_move = NULL;
 	double highest_score = -1;
-	char *command = (char*)malloc(sizeof(char)*6);
+	char *command = (char*)calloc(6, sizeof(char));
 
 	list_moves(table, queue, list);
 	while(!empty_queue(queue)){
-		if(move_score(table, front_queue(queue)) >= highest_score){
+		if(move_score(table, front_queue(queue)) > highest_score){
 			delete_move(&best_move);
 			best_move = copy_move(front_queue(queue));
 			highest_score = move_score(table, best_move);
 		}
 		dequeue(queue);
 	}
-	sprintf(command, "%c%d%c%d", best_move->origin_file, best_move->origin_rank, best_move->destiny_file, best_move->destiny_rank);
-	if(best_move->special != '\0' && best_move->special != 'E') sprintf(command+4, "%c", best_move->special);
+//	sprintf(command, "%c%d%c%d", best_move->origin_file, best_move->origin_rank, best_move->destiny_file, best_move->destiny_rank);
+	command[0] = best_move->origin_file;
+	command[1] = best_move->origin_rank + '0';
+	command[2] = best_move->destiny_file;
+	command[3] = best_move->destiny_rank + '0';
+	command[4] = '\0';
+	if(best_move->special != '\0' && best_move->special != 'E') command[4] = best_move->special;
+	command[5] = '\0';
 	delete_move(&best_move);
-	fprintf(stderr, "highest score = %.4lf ", highest_score);
 	return command;
 }
 

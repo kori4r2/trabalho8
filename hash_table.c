@@ -122,11 +122,13 @@ int insert_hash(HASH_TABLE **hash, char *string){
 	if((*hash)->table[position] == NULL){
 		(*hash)->table[position] = create_element(string);
 		(*hash)->used++;
+//		fprintf(stderr, "%d", (*hash)->table[position]->counter);
 		return 1;
 	}else{
 		if(strcmp(string, (*hash)->table[position]->string) == 0){
 			free(string);
 			(*hash)->table[position]->counter++;
+//			fprintf(stderr, "%d", (*hash)->table[position]->counter);
 			return (*hash)->table[position]->counter;
 		}else{
 			fprintf(stderr, "error inserting %s to hash table, %s existed\n", string, (*hash)->table[position]->string);
