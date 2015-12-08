@@ -89,10 +89,12 @@ int dequeue(QUEUE *queue){
 	return 2;
 }
 
+// Funcao que checa repeticoes na fila de start ate o ultimo nó
 void check_repeats(QUEUE *queue, NODE *start){
 	if(start == NULL) return;
 
 	NODE *last = queue->first->previous;
+	// Se houver apenas um item, simplesmente indica que ele ja foi checado
 	if(start == last) start->checked = 1;
 	else{
 		NODE **coincidences;
@@ -100,16 +102,23 @@ void check_repeats(QUEUE *queue, NODE *start){
 		int counter, i, j;
 		unsigned char type;
 		unsigned char *results;
+		// Enquanto o ultimo item sendo avaliado não for o primeiro, nem todos foram checados
 		while(last != start){
+			// Se o item ainda não foi checado
 			if(!last->checked){
 				node = last->previous;
 				coincidences = NULL;
 				results = NULL;
 				counter = 0;
+				// Avalia todos os nós anteriores
 				do{
+					// Caso o nó ainda não tenha sido checado
 					if(!node->checked){
+						// Se os dois movimentos tiverem o mesmo destino
 						if(compare_moves(node->move, last->move) > 0){
+							// Marca o nó como checado
 							node->checked = 1;
+							// Armazena o nó e o resultado dessa comparacao
 							counter++;
 							results = (unsigned char*)realloc(results, sizeof(unsigned char)*counter);
 							coincidences = (NODE**)realloc(coincidences, sizeof(NODE*)*counter);
@@ -118,24 +127,33 @@ void check_repeats(QUEUE *queue, NODE *start){
 						}
 					}
 					node = node->previous;
+				// Para apos checar o nó inicial
 				}while(node != start);
+				// Caso tenham sido encontradas coincidencias de destino
 				if(counter > 0){
+					// Percorre todas as coincidencias
 					for(i = 0; i < counter; i++){
+						// Checa todas entre si, mas evitando checar mais de uma vez um mesmo par
 						node = coincidences[i];
 						for(j = i+1; j < counter; j++){
+							// Caso seja encontrado um tipo diferente de conflito, altera o resultado desta coincidencia
 							if(j != i && (type = compare_moves(node->move, coincidences[j]->move)) != results[i]){
 								results[i] = type;
 								j = counter;
 							}
 						}
 					}
+					// Armazena o primeiro tipo de confilto
 					type = results[0];
+					// Percorre todos os demais conflitos
 					for(i = 1; i < counter; i++){
+						// Caso haja algum conflito diferente, muda o tipo para 3
 						if(results[i] != type){
 							type = 3;
 							i = counter;
 						}
 					}
+					// altera o tipo de repeticao de todos os nos analisados para o resultado da checagem
 					set_repeat(last->move, type);
 					for(i = 0; i < counter; i++){
 						set_repeat(coincidences[i]->move, type);
@@ -146,6 +164,7 @@ void check_repeats(QUEUE *queue, NODE *start){
 					coincidences = NULL;
 					counter = 0;
 				}
+				// Marca o nó como checado
 				last->checked = 1;
 			}
 			last = last->previous;
@@ -181,8 +200,4 @@ void print_queue(QUEUE *queue){
 			aux = aux->next;
 		}while(aux != queue->first);
 	}
-}
-
-void check_repeat_moves(QUEUE *queue){
-	
 }
