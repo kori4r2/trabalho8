@@ -37,8 +37,36 @@ typedef struct table{
 	char *fen;
 }TABLE;
 
+/*------------------------------------------------------------------------------------------------------------
+   update_fen()
+        Funcao que analisa o estado atual do tabuleiro e atualiza a notacao fen salva
+        - Parametros
+          TABLE* : ponteiro para o tabuleiro
+        - Retorno
+          int : 1 - parametro invalido passado; 0 - operacao bem-sucedida;
+*/
 int update_fen(TABLE*);
+
+/*------------------------------------------------------------------------------------------------------------
+   create_piece()
+        Funcao que cria uma peca de acordo com as informacoes passadas, alocando a memoria necessaria
+        - Parametros
+          char : caractere indicativo da peca criada
+          int : fila da peca criada
+          char : coluna da peca criada
+        - Retorno
+          PIECE* : ponteiro para a peca criada; NULL caso erro de alocacao de memoria
+*/
 PIECE *create_piece(char, int, char);
+
+/*------------------------------------------------------------------------------------------------------------
+   delete_piece()
+        Funcao que apaga uma peca criada, liberando a memoria alocada e setando NULL no seu ponteiro
+        - Parametros
+          PIECE** : endereco do ponteiro para a peca
+        - Retorno
+          void
+*/
 void delete_piece(PIECE**);
 
 char cur_turn(TABLE *table){
@@ -46,7 +74,8 @@ char cur_turn(TABLE *table){
 	else return '\0';
 }
 
-//PIECE related functions------------------------------------
+// Essa funcao era originalmente a funcao de verificacao de cheque, por isso os comentarios, mas eles nao
+// serao alterados pois ainda continuam validos
 int is_attacked(TABLE *table, char file, int rank, int *a2){
 	int i, j, enemy_side, check = 0, dupe = 0;
 	PIECE *king = table->grid[8-rank][file-'a'];
@@ -237,6 +266,7 @@ int is_attacked(TABLE *table, char file, int rank, int *a2){
 	return check;
 }
 
+// Funcao que enfileira todos os movimentos possiveis da torre
 void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	int i, enemy_side, a2;
 	PIECE *aux;
@@ -244,7 +274,6 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 
 	// Move para a posição disponível mais distante para a esquerda na coluna
 	i = 0;
-	// to do (check case6.in)
 	do{i++;}while(rook->file-i > 'a' && table->grid[8-rook->rank][(rook->file-i)-'a'] == NULL);
 	// Checa se é uma posição válida, atribuindo o valor da posição a aux se necessário
 	aux = ((rook->file-i >= 'a') ? table->grid[8-rook->rank][(rook->file-i)-'a'] : NULL);
@@ -349,6 +378,7 @@ void move_rook(TABLE *table, QUEUE *queue, PIECE *rook){
 	}
 }
 
+// Funcao que enfileira todas as jogadas possiveis de um cavalo
 void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 	int i, j, enemy_side, flag, capture, a2;
 	PIECE *aux;
@@ -492,6 +522,7 @@ void move_knight(TABLE *table, QUEUE *queue, PIECE *knight){
 
 }
 
+// Funcao que efileira todas as jogadas possiveis de um bispo
 void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 	int i, up, down, enemy_side, repeat, flag1, flag2, capture, a2;
 	PIECE *aux1, *aux2;
@@ -644,6 +675,8 @@ void move_bishop(TABLE *table, QUEUE *queue, PIECE *bishop){
 		i++;
 	}
 }
+
+// Funcao que enfileira todas as jogadas possiveis da rainha
 void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 	int i, up, down, side, enemy_side, repeat, flag1, flag2, flag3, capture, a2;
 	PIECE *aux1, *aux2, *aux3;
@@ -907,6 +940,7 @@ void move_queen(TABLE *table, QUEUE *queue, PIECE *queen){
 
 }
 
+// Funcao que enfileira todas as jogadas possiveis do rei
 void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 	int i, j, enemy_side, capture, flag, castling_queen, castling_king, a2;
 	char cast_queen_flag, cast_king_flag;
@@ -919,10 +953,13 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 	castling_king = 0;
 	enemy_side = (king->side == WHITES_SIDE)? BLACKS_SIDE : WHITES_SIDE;
 	if(table->castling[0] != '-'){
+		// Percorre a string de roque
 		for(i = 0; table->castling[i] != '\0'; i++){
+			// Se for encontrado o indicador de roque da rainha
 			if(table->castling[i] == cast_queen_flag){
 				castling_queen = 1;
 				table->grid[8-king->rank][king->file-'a'] = NULL;
+				// Percorre as 3 casas à esquerda analisando se algo impossibilita o roque
 				for(j = 0, flag = 1; j < 3 && flag; j++){
 					king->file--;
 					if(table->grid[8-king->rank][king->file-'a'] != NULL){
@@ -939,9 +976,11 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 				}
 				king->file += j;
 				table->grid[8-king->rank][king->file-'a'] = king;
+			// Se for encontrado o indicador de roque do rei
 			}else if(table->castling[i] == cast_king_flag){
 				castling_king = 1;
 				table->grid[8-king->rank][king->file-'a'] = NULL;
+				// Percorre as 2 casas à direita analisando se algo impossibilita o roque
 				for(j = 0, flag = 1; j < 2 && flag; j++){
 					king->file++;
 					if(table->grid[8-king->rank][king->file-'a'] != NULL){
@@ -1050,6 +1089,7 @@ void move_king(TABLE *table, QUEUE *queue, PIECE *king){
 	if(castling_king) enqueue(queue, create_move(king->name, king->rank, king->file, king->rank, king->file+2, 0, 0));
 }
 
+// Funcao que enfileira todas as jogadas possiveis do peao
 void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 	int enemy_side, start, finish, i, j, mirror, capture, en_passant_rank, flag, a2;
 	char en_passant_file, special = '\0';
@@ -1150,7 +1190,6 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 		capture = (aux != NULL && aux->side == enemy_side);
 		if(flag && table->grid[8-(pawn->rank+mirror)][pawn->file+1-'a'] != NULL) capture = 0;
 		if(capture){
-//			special = (pawn->file+1 == en_passant_file && pawn->rank+mirror == en_passant_rank)? 'E' : '\0';
 			table->grid[8-(pawn->rank+mirror)][pawn->file-'a'+1] = pawn;
 			table->grid[8-(pawn->rank)][pawn->file-'a'] = NULL;
 			if(flag) table->grid[8-(pawn->rank)][pawn->file+1-'a'] = NULL;
@@ -1180,11 +1219,15 @@ void move_pawn(TABLE *table, QUEUE *queue, PIECE *pawn){
 
 PIECE *create_piece(char name, int rank, char file){
 	PIECE *piece = (PIECE*)malloc(sizeof(PIECE));
+	// Se a alocacao de memoria for bem sucedida
 	if(piece != NULL){
+		// Atribui nome e posicao da peca
 		piece->name = name;
 		piece->rank = rank;
 		piece->file = file;
-		piece->side = (isupper(name) ? WHITES_SIDE : BLACKS_SIDE);
+		// Avalia se a peca é preta ou branca
+		piece->side = (isupper(name)) ? WHITES_SIDE : BLACKS_SIDE;
+		// Analisa o nome da peca para atribuir sua funcao de movimento
 		switch(name){
 			case W_ROOK:
 			case B_ROOK:
@@ -1222,6 +1265,7 @@ PIECE *create_piece(char name, int rank, char file){
 	return piece;
 }
 
+// Funcao que compara a prioridade das pecas para organizacao da lista
 int compare_priority(PIECE *piece1, PIECE *piece2){
 	// Verifica se foram passadas peças válidas
 	if(piece1 != NULL && piece2 != NULL){
@@ -1242,6 +1286,7 @@ int compare_priority(PIECE *piece1, PIECE *piece2){
 	return 0;
 }
 
+// Funcao que cria um nó auxiliar (nó da lista de pecas)
 AUX_NODE *create_aux_node(PIECE *piece){
 	AUX_NODE *node = NULL;
 	if(piece != NULL){
@@ -1254,19 +1299,25 @@ AUX_NODE *create_aux_node(PIECE *piece){
 	return node;
 }
 
+// Funcao que insere uma peca na lista de pecas de maneira ordenada
 int insert_list(PIECE_LIST *list, PIECE *piece){
 	if(list != NULL && piece != NULL){
 		AUX_NODE *new_node;
+		// Se nao houver nenhum item na lista, apenas cria o primeiro item
 		if(list->first == NULL) list->last = list->first = create_aux_node(piece);
+		// Caso o item inserido seja o novo primeiro item, faz as atribuicoes necessarias
 		else if(compare_priority(piece, list->first->piece) < 0){
 			new_node = create_aux_node(piece);
 			new_node->next = list->first;
 			list->last->next = new_node;
 			list->first = new_node;
+		// Caso contrario
 		}else{
 			AUX_NODE *prev_node = list->first;
+			// Percorre a lista procurando a posicao de insercao do nó
 			while(compare_priority(piece, prev_node->next->piece) > 0 && prev_node->next != list->first)
 				prev_node = prev_node->next;
+			// E o insere na lista
 			new_node = create_aux_node(piece);
 			new_node->next = prev_node->next;
 			prev_node->next = new_node;
@@ -1277,6 +1328,7 @@ int insert_list(PIECE_LIST *list, PIECE *piece){
 	return 1;
 }
 
+// Funcao que cria uma lista de pecas vazia
 PIECE_LIST *create_empty_list(void){
 	PIECE_LIST *list = (PIECE_LIST*)malloc(sizeof(PIECE_LIST));
 	if(list != NULL){
@@ -1289,6 +1341,7 @@ PIECE_LIST *create_empty_list(void){
 PIECE_LIST *create_piece_list(TABLE *table){
 	PIECE_LIST *list = NULL;
 	if(table != NULL){
+		// Aloca a memoria necessaria
 		list = (PIECE_LIST*)malloc(sizeof(PIECE_LIST));
 		if(list != NULL){
 			int i, j, side_turn;
@@ -1296,6 +1349,7 @@ PIECE_LIST *create_piece_list(TABLE *table){
 
 			list->first = NULL;
 			list->last = NULL;
+			// Percore o tabuleiro
 			for(i = 0; i < 8; i++){
 				for(j = 0; j < 8; j++){
 					// Se existir uma peça e for o turno dela atualmente
@@ -1321,11 +1375,11 @@ int delete_list(PIECE_LIST **list){
 		free((*list)->first);
 		free(*list);
 		(*list) = NULL;
+		return 0;
 	}
 	return 1;
 }
 
-// auxiliary function
 int print_list(PIECE_LIST *list){
 	if(list != NULL){
 		AUX_NODE *print = list->first;
@@ -1348,7 +1402,6 @@ void delete_piece(PIECE **piece){
 	}
 }
 
-// TABLE related functions--------------------------------------------------------
 TABLE *create_table(void){
 	int i, j;
 	int error = 0;
@@ -1405,10 +1458,13 @@ int read_table(FILE *stream, TABLE *table){
 		char *token;
 		int i, j, k, cur_side;
 
+		// Obtem as informacoes de cada linha a cada chamada de strtok
 		token = strtok(input, DELIMITERS);
 		for(i = 0; i < 8; i++){
 			for(j = 0, k = 0; token[j] != '\0'; j++){
+				// Caso o caractere seja de um número, pula todas as casas vazias indicadas
 				if(isdigit(token[j])) k += (token[j] - '0');
+				// Caso contrario cria a peca e a insere na posicao atual
 				else{
 					table->grid[i][k] = create_piece(token[j], (8-i), ('a'+k));
 					k++;
@@ -1418,21 +1474,27 @@ int read_table(FILE *stream, TABLE *table){
 			token = strtok(NULL, DELIMITERS);
 		}
 
+		// Apos a ultima chamada de strtok, tok armazena a informacao de turno
 		table->turn = token[0];
 		token = strtok(NULL, DELIMITERS);
 
+		// Copia a informacao de roque
 		table->castling = (char*)malloc(sizeof(char) * 5);
 		strcpy(table->castling, token);
 		token = strtok(NULL, DELIMITERS);
 
+		// Copia a informacao de captura en passant
 		table->en_passant = strdup(token);
 		token = strtok(NULL, DELIMITERS);
 
+		// Copia o numero de meio turnos
 		table->half_turns = atoi(token);
 		token = strtok(NULL, DELIMITERS);
 
+		// Copia o numero de turnos passados
 		table->cur_turn = atoi(token);
 
+		// Percorre o tabuleiro a procura do rei do turno atual e armazena sua posicao para facilitar checagem de cheque
 		cur_side = (table->turn == WHITES_TURN)? WHITES_SIDE : BLACKS_SIDE;
 		for(i = 0; i < 8; i++){
 			for(j = 0; j < 8; j++){
@@ -1444,6 +1506,7 @@ int read_table(FILE *stream, TABLE *table){
 			}
 		}
 
+		// Atualiza a notacao fen do tabuleiro coma a situacao atual
 		update_fen(table);
 		free(input);
 		return 0;
@@ -1454,15 +1517,20 @@ int read_table(FILE *stream, TABLE *table){
 }
 
 char *dupe_move(TABLE *table){
+	// Volta um turno
 	table->turn = (table->turn == WHITES_TURN)? BLACKS_TURN : WHITES_TURN;
 	table->half_turns--;
 	if(table->turn == BLACKS_TURN) table->cur_turn--;
 	char *dupe = (char*)malloc(sizeof(char)*5);
+	// Cria um movimento fazendo o rei se mover de uma casa para a mesma
 	sprintf(dupe, "%c%d%c%d", table->turn_king->file, table->turn_king->rank, table->turn_king->file, table->turn_king->rank);
+	// Retorna a string do movimento
 	return dupe;
 }
 
+// Funcao que checa se um movimento é valido
 int is_valid_movement(char orig_file, int orig_rank, char dest_file, int dest_rank, TABLE *table){
+	// Se o movimento for dentro dos limites do tabuleiro e fizer uma peca valida se mover
 	if(!(orig_file < 'a' || orig_file > 'h' || orig_rank < 1 || orig_rank > 8) &&
 	!(dest_file < 'a' || dest_file > 'h' || dest_rank < 1 || dest_rank > 8) &&
 	(table->grid[8-orig_rank][orig_file-'a'] != NULL)){
@@ -1471,16 +1539,21 @@ int is_valid_movement(char orig_file, int orig_rank, char dest_file, int dest_ra
 		PIECE_LIST *list;
 		QUEUE *queue;
 		CHESS_MOVE *movement;
+		// Se a jogada nao tentar colocar uma peca na mesma posicao de uma peca aliada
 		if(!(destiny != NULL && origin->side == destiny->side)){
-//			printf("moving %c from %c%d to %c%d\n", origin->name, orig_file, orig_rank, dest_file, dest_rank);
+			// Cria uma lista vazia e insere apenas a peca sendo movida
 			list = create_empty_list();
 			insert_list(list, origin);
 			queue = create_queue();
+			// Lista todos os movimentos possiveis dessa peca
 			list_moves(table, queue, list);
-//			print_queue(queue);
+			// Cria um movimento com as informacoes passadas
 			movement = create_move(0, orig_rank, orig_file, dest_rank, dest_file, 0, 0);
+			// Esvazia a fila um por um
 			while(!empty_queue(queue)){
+				// Se o movimento encontrado for igual ao que se deseja realizar
 				if(compare_moves(front_queue(queue), movement) == 3){
+					// Libera memoria alocada e retorna 1
 					delete_queue(&queue);
 					delete_list(&list);
 					delete_move(&movement);
@@ -1488,6 +1561,7 @@ int is_valid_movement(char orig_file, int orig_rank, char dest_file, int dest_ra
 				}
 				dequeue(queue);
 			}
+			// Caso o movimento nao seja encontrado, libera memoria alocada e retorna 0
 			delete_queue(&queue);
 			delete_list(&list);
 			delete_move(&movement);
@@ -1496,15 +1570,19 @@ int is_valid_movement(char orig_file, int orig_rank, char dest_file, int dest_ra
 	return 0;
 }
 
+// Funcao que checa a situacao atual do tabuleiro para avaliar se é possivel algum jogador dar cheque mate
 int enough_pieces(TABLE *table){
 	int i, j, b_counter = 0, n_counter = 0, B_counter = 0, N_counter = 0;
+	// Percorre o tabuleiro contando pecas
 	for(i = 0; i < 8; i++){
 		for(j = 0; j < 8; j++){
 			if(table->grid[i][j] != NULL){
+				// Se for encontrado um peao, uma torre ou uma rainha, retorna 1, pois e possivel
 				if(table->grid[i][j]->move == move_pawn ||
 				   table->grid[i][j]->move == move_rook ||
 				   table->grid[i][j]->move == move_queen)
 					return 1;
+				// Caso nao sejam, vai contando bispos e cavalos
 				else{
 					if(table->grid[i][j]->name == B_BISHOP) b_counter++;
 					if(table->grid[i][j]->name == W_BISHOP) B_counter++;
@@ -1514,6 +1592,7 @@ int enough_pieces(TABLE *table){
 			}
 		}
 	}
+	// Se alguma das condicoes que impossibilitam cheque mate dos dois lados for encontrada retorna 0
 	if(b_counter == 0 && B_counter == 0 && N_counter == 0 && n_counter == 0) return 0;
 	else{
 		if(b_counter == 0 && n_counter == 0){
@@ -1526,6 +1605,7 @@ int enough_pieces(TABLE *table){
 		}
 	}
 
+	// Caso contrario retorna 1
 	return 1;
 }
 
@@ -1543,12 +1623,12 @@ int move_piece(char *movement, TABLE *table){
 	dest_file = movement[2];
 	dest_rank = movement[3] - '0';
 	piece = table->grid[8-orig_rank][orig_file-'a'];
+	// Analisa se o movimento sendo realizado é o movimento teste
 	dupe = (dest_rank == orig_rank && dest_file == orig_file && piece->move == move_king)? 1: 0;
 	if(piece != NULL && piece->move == move_pawn) promotion = movement[4];
 	else promotion = '\0';
 
 	if(!dupe && !is_valid_movement(orig_file, orig_rank, dest_file, dest_rank, table)){
-//		table->turn = (table->turn == WHITES_TURN)? BLACKS_TURN : WHITES_TURN;
 		printf("Movimento invalido. Tente novamente.\n");
 		return 2;
 	}
@@ -1707,7 +1787,6 @@ int move_piece(char *movement, TABLE *table){
 	list = create_piece_list(table);
 	queue = create_queue();
 	list_moves(table, queue, list);
-//fprintf(stdout, "%c at %c%d\n", table->grid[8-dest_rank][dest_file-'a']->name, dest_file, dest_rank);
 	delete_list(&list);
 	update_fen(table);
 	if(empty_queue(queue)){
@@ -1722,12 +1801,14 @@ int move_piece(char *movement, TABLE *table){
 		return 0;
 	}else delete_queue(&queue);
 
+	// Se o numero de meio turnos for acima do limite, declara empate
 	if(table->half_turns >= 50){
 		printf("%s\n", table->fen);
 		printf("Empate -- Regra dos 50 Movimentos\n");
 		return 0;
 	}
 
+	// Se nao houver pecas suficientes para cheque mate dos dois lados, declara empate
 	if(!enough_pieces(table)){
 		printf("%s\n", table->fen);
 		printf("Empate -- Falta de Material\n");
@@ -1749,41 +1830,59 @@ int update_fen(TABLE *table){
 		int i, j, counter, size = 0;
 		char *fen = NULL;
 
+		// Percorre o tabuleiro
 		for(i = 0; i < 8; i++){
+			// Zera o contador
 			counter = 0;
+			// Percorre a linha
 			for(j = 0; j < 8; j++){
+				// Quando encontra uma peca
 				if(table->grid[i][j] != NULL){
+					// caso o contador seja maior que zero
 					if(counter > 0){
+						// Aloca a memoria a mais na string e adiciona o numero de espacos vazios
 						size++;
 						fen = (char*)realloc(fen, sizeof(char) * (size+1));
 						sprintf(fen+size-1, "%d", counter);
 					}
+					// Aloca a memoria a mais e adiciona a peca encontrada
 					size++;
 					fen = (char*)realloc(fen, sizeof(char) * (size+1));
 					sprintf(fen+size-1, "%c", table->grid[i][j]->name);
+					// Zera o contador
 					counter = 0;
+				// Caso contrario incrementa o contador
 				} else counter++;
 			}
+			// Ao chegar no final da fila avalia se devem ser adicionados o numero de espacos vazios no final
 			if(counter > 0){
 				size++;
 				fen = (char*)realloc(fen, sizeof(char) * (size+1));
 				sprintf(fen+size-1, "%d", counter);
 			}
+			// Caso nao seja a ultima linha analisada, adiciona uma divisoria
 			if(i < 7){
 				size++;
 				fen = (char*)realloc(fen, sizeof(char) * (size+1));
 				sprintf(fen+size-1, "/");
 			}
 		}
+		// Aumenta o tamanho da string
 		size += 8;
+		// Analisa se os numeros precisam de um espaco adicional
 		if(table->half_turns/10 > 0) size+= 1;
 		if(table->cur_turn/10 > 0) size += 1;
 		if(table->cur_turn/100 > 0) size+= 1;
+		// Aumenta o espaco necessario para as strings de roque e en passant
 		size += (int)strlen(table->castling);
 		size += (int)strlen(table->en_passant);
+		// Aloca a memoria para escrever na string
 		fen = (char*)realloc(fen, sizeof(char) * (size+1));
+		// Escreve todas as informacoes lidas
 		sprintf(fen+strlen(fen), " %c %s %s %d %d", table->turn, table->castling, table->en_passant, table->half_turns, table->cur_turn);
+		// Se existia uma fen salva, apaga a anterior
 		if(table->fen != NULL) free(table->fen);
+		// Salva a nova fen
 		table->fen = fen;
 		return 0;
 	}
@@ -1795,13 +1894,21 @@ void list_moves(TABLE *table, QUEUE *queue, PIECE_LIST *list){
 	NODE *start;
 	char cur_piece = 0;
 	if(node != NULL){
+		// Percorre a lista de pecas
 		do{
+			// Analisa se essa é a primeira peca do seu tipo a ser analisada
+			// E salva seu endereco caso seja
 			if(cur_piece != node->piece->name) start = queue->first;
+			// Enfileira todos os movimentos da peca atual
 			node->piece->move(table, queue, node->piece);
+			// Avanca para o proximo nó
 			node = node->next;
-			if(cur_piece != node->piece->name){
+			// Caso o proximo no nao seja mais do mesmo tipo ou seja o ultimo no da lista
+			if(cur_piece != node->piece->name || node == list->first){
+				// Checa repeticoes de todos os nos com esse mesmo tipo
 				if(start == NULL) check_repeats(queue, queue->first);
 				else check_repeats(queue, start);
+				// Atualiza o tipo de pecas atual
 				cur_piece = node->piece->name;
 			}
 		}while(node != list->first);
@@ -1809,6 +1916,7 @@ void list_moves(TABLE *table, QUEUE *queue, PIECE_LIST *list){
 }
 
 double piece_score(TABLE *table, PIECE *piece){
+	// Retorna o valor da peca, ou 50 quando for casa vazia
 	if(piece == NULL) return 50;
 	else{
 		if(piece->move == move_pawn) return 100;
@@ -1820,6 +1928,7 @@ double piece_score(TABLE *table, PIECE *piece){
 	}
 }
 
+// Funcao que analisa um movimento e calcula seu valor
 double move_score(TABLE *table, CHESS_MOVE *move){
 	PIECE *piece = table->grid[8-move->origin_rank][move->origin_file-'a'];
 	PIECE *aux = table->grid[8-move->destiny_rank][move->destiny_file-'a'];
@@ -1827,6 +1936,7 @@ double move_score(TABLE *table, CHESS_MOVE *move){
 	int a1, a2, i, j, castling = 0;
 	double numerator = 0, denominator = 0, value1, value2;
 
+	// Se o movimento a ser realizado for um roque, move a torre
 	if(piece->move == move_king && (move->origin_file - move->destiny_file == 2 || move->origin_file - move->destiny_file == -2)){
 		castling = 1;
 		if(move->destiny_file == 'c'){
@@ -1842,12 +1952,14 @@ double move_score(TABLE *table, CHESS_MOVE *move){
 		}
 	}
 
-
+	// Retira a peca da origem
 	table->grid[8-move->origin_rank][move->origin_file-'a'] = NULL;
 	table->grid[8-move->destiny_rank][move->destiny_file-'a'] = piece;
+	// Caso seja uma captura en passant, armazena a peca capturada e retira-a do tabuleiro
 	if(move->special == 'E'){
 		aux = table->grid[8-piece->rank][move->destiny_file-'a'];
 		table->grid[8-piece->rank][move->destiny_file-'a'] = NULL;
+	// Caso seja uma promocao, altera o peao que se movimentou
 	}else if(move->special != '\0'){
 		piece->name = move->special;
 		if(move->special == W_KNIGHT) piece->move = move_knight;
@@ -1856,39 +1968,39 @@ double move_score(TABLE *table, CHESS_MOVE *move){
 		else if(move->special == W_QUEEN) piece->move = move_queen;
 		if(piece->side == BLACKS_SIDE) piece->name = tolower(piece->name);
 	}
+	// Atualiza as informacoes da peca
 	piece->file = move->destiny_file;
 	piece->rank = move->destiny_rank;
+	// Percorre o tabuleiro
 	for(i = 0; i < 8; i++){
 		for(j = 0; j < 8; j++){
+			// Obtem a1, a2, v1 e v2 para todas as caras
 			a1 = is_attacked(table, 'a'+j, 8-i, &a2);
 			value1 = piece_score(table, table->grid[i][j]);
-//			fprintf(stderr, "(%d,%d) ", a1, a2);
 			value2 = value1;
+			// Analisa se v1 e v2 precisa ser divididos por 2
 			if(table->grid[i][j] != NULL){
 				if(table->grid[i][j]->side == table->turn_king->side) value2 = value2/2.0;
 				else value1 = value1/2.0;
 			}
-//			fprintf(stderr, "%9.3lf ", value2);
+			// Incrementa o numerador e o denominador
 			numerator += (double)a2*(value2);
 			denominator += (double)a1*(value1);
 		}
-//		fprintf(stderr, "    ");
-//		for(j = 0; j < 8; j++){
-//			if(table->grid[i][j] == NULL) fprintf(stderr, " - ");
-//			else fprintf(stderr, " %c ", table->grid[i][j]->name);
-//		}
-//		fprintf(stderr, "\n");
 	}
-//	fprintf(stderr, "result = %.6lf\n\n", (numerator/(denominator+1.0)));
+	// Caso a peca tenha sido promovida, faz com que volte a ser um peao
 	if(move->special != '\0' && move->special != 'E'){
 		piece->name = (piece->side == WHITES_SIDE)? W_PAWN : B_PAWN;
 		piece->move = move_pawn;
 	}
+	// Volta a peca para sua posicao original
 	table->grid[8-move->origin_rank][move->origin_file-'a'] = piece;
 	piece->rank = move->origin_rank;
 	piece->file = move->origin_file;
 	table->grid[8-move->destiny_rank][move->destiny_file-'a'] = NULL;
+	// Se uma peca foi capturada, retorna-a ao lugar de origem
 	if(aux != NULL) table->grid[8-aux->rank][aux->file-'a'] = aux;
+	// Se o roque foi realizado, retorna a torre ao lugar de origem
 	if(castling){
 		if(move->destiny_file == 'c'){
 			table->grid[8-piece->rank][0] = rook;
@@ -1911,33 +2023,41 @@ char *ai_move(TABLE *table){
 	double highest_score = -1;
 	char *command = (char*)calloc(6, sizeof(char));
 
+	// Lista todos os movimentos que a ia pode realizar
 	list_moves(table, queue, list);
+	// Avalia todos os movimentos
 	while(!empty_queue(queue)){
+		// Se o movimento avaliado for melhor que o ultimo melhor, salva ele
 		if(move_score(table, front_queue(queue)) > highest_score){
 			delete_move(&best_move);
 			best_move = copy_move(front_queue(queue));
 			highest_score = move_score(table, best_move);
 		}
+		// Desenfileira
 		dequeue(queue);
 	}
-//	sprintf(command, "%c%d%c%d", best_move->origin_file, best_move->origin_rank, best_move->destiny_file, best_move->destiny_rank);
+	// Armazena as informacoes do melhor movimento
 	command[0] = best_move->origin_file;
 	command[1] = best_move->origin_rank + '0';
 	command[2] = best_move->destiny_file;
 	command[3] = best_move->destiny_rank + '0';
 	command[4] = '\0';
+	// Se for uma provocao, armazena para que peca sera promovido
 	if(best_move->special != '\0' && best_move->special != 'E') command[4] = best_move->special;
 	command[5] = '\0';
+	// Libera a memoria alocada
 	delete_move(&best_move);
 	delete_list(&list);
 	delete_queue(&queue);
 
+	// Retorna o melhor comando
 	return command;
 }
 
 int delete_table(TABLE **table){
 	if(table != NULL && *table != NULL){
 		int i, j;
+		// Apaga todas as pecas e a matriz alocada
 		if((*table)->grid != NULL){
 			for(i = 0; i < 8; i++){
 				for(j = 0; j < 8; j++){
@@ -1949,10 +2069,12 @@ int delete_table(TABLE **table){
 			free((*table)->grid);
 		}
 
+		// Libera a memoria alocada por strings
 		if((*table)->castling != NULL) free((*table)->castling);
 		if((*table)->en_passant != NULL) free((*table)->en_passant);
 		if((*table)->fen != NULL) free((*table)->fen);
 
+		// Libera a memoria restante e seta NULL no ponteiro
 		free(*table);
 		(*table) = NULL;
 		return 0;
@@ -1960,7 +2082,6 @@ int delete_table(TABLE **table){
 	return 1;
 }
 
-// Auxiliary function
 int print_table(TABLE *table){
 	if(table != NULL){
 		int i, j;

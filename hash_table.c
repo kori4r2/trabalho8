@@ -1,3 +1,5 @@
+//  Ítalo Tobler Silva - nUSP 8551910
+
 #include "hash_table.h"
 #include "math.h"
 
